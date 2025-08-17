@@ -38,8 +38,8 @@ extension HDEthereumPrivateKey {
         let childIndex = (hardened ? (0x8000_0000 | index) : index).bigEndian
         data.append(childIndex.data)
 
-        let hmac = HMAC(key: chainCode.bytes, variant: .sha2(.sha512))
-        let digest = try hmac.authenticate(data.bytes)
+        let hmac = HMAC(key: chainCode, variant: .sha2(.sha512))
+        let digest = try hmac.authenticate([UInt8](data))
 
         let parentKey = digest[0..<32]
         let chainCode = digest[32..<64]
@@ -48,7 +48,7 @@ extension HDEthereumPrivateKey {
 
         return HDEthereumPrivateKey(
             key: EthereumPrivateKey(rawBytes: childKey),
-            chainCode: chainCode.bytes,
+            chainCode: [UInt8](chainCode),
             depth: depth + 1,
             parentFingerprint: parentFingerprint,
             childNumber: childNumber

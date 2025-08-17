@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "KeyManagement",
-    platforms: [.iOS(.v16)],
+    platforms: [.iOS(.v16), .macOS(.v10_15)],
     products: [
         .library(
             name: "Wallet",
@@ -13,7 +13,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift", from: "1.5.1"),
-        .package(url: "https://github.com/GigaBitcoin/secp256k1.swift", branch: "main"),
+        .package(url: "https://github.com/Boilertalk/secp256k1.swift.git", from: "0.1.7"),
         .package(url: "https://github.com/zcash-hackworks/MnemonicSwift", from: "2.2.4")
     ],
     targets: [

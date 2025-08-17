@@ -19,7 +19,7 @@ extension EthereumPrivateKey {
         }
 
         // 4. Create a secp256k1 context object, internally it uses malloc to allocate its memory.
-        guard let context = secp256k1_context_create(UInt32(SECP256K1_CONTEXT_VERIFY)),
+        guard let context = secp256k1_context_create(UInt32(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY)),
               secp256k1_ec_seckey_verify(context, rawBytes) == 1 else {
             throw KeyError.privateKeyContext
         }
@@ -59,7 +59,7 @@ extension EthereumPrivateKey {
         )
         var publicKey = Data(bytes: publicKeyOutputPointer, count: outputLen)
         if !compressed { publicKey.remove(at: 0) }
-        let publicKeyBytes = publicKey.bytes
+        let publicKeyBytes = [UInt8](publicKey)
         return EthereumPublicKey(rawBytes: publicKeyBytes)
     }
 }

@@ -26,7 +26,8 @@ extension HDEthereumPrivateKey {
         let status = rawVariable.withUnsafeMutableBytes { privateKeyBytes -> Int32 in
             // 5. We typed the returned pointer
             guard let privateKeyPointer = privateKeyBytes.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return 0 }
-            return secp256k1_ec_seckey_tweak_add(context, privateKeyPointer, derivedPrivateKey.bytes)
+            let tweakBytes: [UInt8] = Array(derivedPrivateKey)
+            return secp256k1_ec_privkey_tweak_add(context, privateKeyPointer, tweakBytes)
         }
 
         // 6. Throw an error in case status is not true

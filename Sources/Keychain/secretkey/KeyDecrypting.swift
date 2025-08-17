@@ -36,7 +36,7 @@ public final class KeyDecrypting: KeyDecryptable {
         }
 
         // 4. Return the Private Key using the array of bytes
-        return try plainTextData.bytes.withDecryptedBytes { key in
+        return try ByteArray(plainTextData).withDecryptedBytes { key in
             try handler(key)
         }
     }

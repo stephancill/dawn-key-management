@@ -100,7 +100,7 @@ extension HDEthereumWallet {
         encrypt: KeyEncryptable = KeyEncrypting()
     ) throws -> String {
         let seedId = UUID().uuidString
-        let seedData = Data(mnemonic.bytes)
+        let seedData = Data(mnemonic)
 
         // 1. Encrypt the seedPhrase using the generated UUID as reference
         let ciphertext = try encrypt.encrypt(seedData, with: seedId)
