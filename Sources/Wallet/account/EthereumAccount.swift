@@ -29,39 +29,39 @@ public final class EthereumAccount {
 }
 
 extension EthereumAccount {
-    public func accessPrivateKey<T>(_ content: (ByteArray) -> T) throws -> T {
+    public func accessPrivateKey<T>(accessGroup: String, _ content: (ByteArray) -> T) throws -> T {
         // 1. Get the ciphertext stored in the keychain
         guard let ciphertext = try keyStorage.get(key: address.eip55Description) else {
             throw Error.notImported
         }
 
         // 2. Decrypt ciphertext, return the key
-        return try keyDecrypt.decrypt(address.eip55Description, cipherText: ciphertext, handler: { key in
+        return try keyDecrypt.decrypt(address.eip55Description, cipherText: ciphertext, accessGroup: accessGroup, handler: { key in
             content(key)
         })
     }
 
-    public func signDigest(_ digest: ByteArray) throws -> Signature {
+    public func signDigest(_ digest: ByteArray, accessGroup: String) throws -> Signature {
         // 1. Get the ciphertext stored in the keychain
         guard let ciphertext = try keyStorage.get(key: address.eip55Description) else {
             throw Error.notImported
         }
 
         // 2. Decrypt ciphertext, return the signature
-        return try keyDecrypt.decrypt(address.eip55Description, cipherText: ciphertext, handler: { key in
+        return try keyDecrypt.decrypt(address.eip55Description, cipherText: ciphertext, accessGroup: accessGroup, handler: { key in
             try sign(digest, privateKey: key)
         })
     }
 
     /// Sign multiple digests within just one access to the keychain
-    public func signMultiple(_ digests: [ByteArray]) throws -> [Signature] {
+    public func signMultiple(_ digests: [ByteArray], accessGroup: String) throws -> [Signature] {
         // 1. Get the ciphertext stored in the keychain
         guard let ciphertext = try keyStorage.get(key: address.eip55Description) else {
             throw Error.notImported
         }
 
         // 2. Decrypt ciphertext, return the array of signatures
-        return try keyDecrypt.decrypt(address.eip55Description, cipherText: ciphertext, handler: { key in
+        return try keyDecrypt.decrypt(address.eip55Description, cipherText: ciphertext, accessGroup: accessGroup, handler: { key in
             return try digests.map { try sign($0, privateKey: key) }
         })
     }

@@ -39,12 +39,12 @@ public class EthereumWallet {
 
 extension EthereumWallet {
     @discardableResult
-    public func encryptWallet() throws -> EthereumWallet {
+    public func encryptWallet(accessGroup: String) throws -> EthereumWallet {
         let privateKey = Data(privateKey.rawBytes)
         let address = try address.eip55Description
 
         // 1. Encrypt the private key using the address checksum as reference
-        let ciphertext = try keyEncrypt.encrypt(privateKey, with: address)
+        let ciphertext = try keyEncrypt.encrypt(privateKey, with: address, accessGroup: accessGroup)
 
         // 2. Store the ciphertext in the keychain
         let status = keyStorage.set(data: ciphertext as Data, key: address)

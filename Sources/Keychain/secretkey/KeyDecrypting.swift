@@ -3,7 +3,7 @@ import Model
 import class Model.EthereumPrivateKey
 
 public protocol KeyDecryptable {
-    func decrypt<R>(_ id: String, cipherText: Data, handler: ((ByteArray) throws -> R)) throws -> R
+    func decrypt<R>(_ id: String, cipherText: Data, accessGroup: String, handler: ((ByteArray) throws -> R)) throws -> R
 }
 
 public final class KeyDecrypting: KeyDecryptable {
@@ -22,9 +22,9 @@ public final class KeyDecrypting: KeyDecryptable {
         self.security = security
     }
 
-    public func decrypt<R>(_ id: String, cipherText: Data, handler: ((ByteArray) throws -> R)) throws -> R {
+    public func decrypt<R>(_ id: String, cipherText: Data, accessGroup: String, handler: ((ByteArray) throws -> R)) throws -> R {
         // 1. Get the reference of the secret stored in the secure enclave
-        let secret = try secretReference(with: id, cipherText: cipherText)
+        let secret = try secretReference(with: id, cipherText: cipherText, accessGroup: accessGroup)
 
         // 2. Decrypt privateKey using the secret reference, and ciphertext
         var error: Unmanaged<CFError>?
@@ -41,12 +41,12 @@ public final class KeyDecrypting: KeyDecryptable {
         }
     }
 
-    private func secretReference(with reference: String, cipherText: Data) throws -> CFTypeRef? {
+    private func secretReference(with reference: String, cipherText: Data, accessGroup: String) throws -> CFTypeRef? {
         let params: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
             kSecAttrApplicationTag as String: reference.data(using: .utf8) as Any,
-            kSecAttrAccessGroup as String: Constants.accessGroup,
+            kSecAttrAccessGroup as String: accessGroup,
             kSecReturnRef as String: true,
         ]
         var raw: CFTypeRef?

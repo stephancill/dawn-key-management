@@ -1,7 +1,7 @@
 import Foundation
 
 public protocol KeyEncryptable {
-    func encrypt(_ privateKey: Data, with reference: String) throws -> CFData
+    func encrypt(_ privateKey: Data, with reference: String, accessGroup: String) throws -> CFData
 }
 
 public final class KeyEncrypting: KeyEncryptable {
@@ -30,16 +30,17 @@ public final class KeyEncrypting: KeyEncryptable {
     /// - Parameters:
     ///   - privateKey: Private key
     ///   - reference: Reference used to place the generated secret
+    ///   - accessGroup: Access group used for keychain segregation
     /// - Returns: Ciphertext
-    public func encrypt(_ privateKey: Data, with reference: String) throws -> CFData {
+    public func encrypt(_ privateKey: Data, with reference: String, accessGroup: String) throws -> CFData {
         let secretReference: SecKey
         do {
             // 1. Check if there is a secret stored in the secure enclave using the address as tag (tag is not involved in the encryption process, it's used only to fetch the secret reference)
             // Value returned is the reference used to interact with the secure enclave. The secret itself never gets exposed.
-            secretReference = try retrieveSecret(with: reference)
+            secretReference = try retrieveSecret(with: reference, accessGroup: accessGroup)
         } catch {
             // 2. If not, a secret using the address as tag is generated
-            secretReference = try generateSecret(with: reference)
+            secretReference = try generateSecret(with: reference, accessGroup: accessGroup)
         }
 
         // 3. Resolve the public key using the reference retrieved / generated before
@@ -57,14 +58,14 @@ public final class KeyEncrypting: KeyEncryptable {
     }
 
     /// Fetch the reference of the secret, throw an error in case it does not exist
-    private func retrieveSecret(with reference: String) throws -> SecKey {
-        let query: [String: Any] = [
+    private func retrieveSecret(with reference: String, accessGroup: String) throws -> SecKey {
+        var query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
             kSecAttrApplicationTag as String: reference.data(using: .utf8) as Any,
-            kSecAttrAccessGroup as String: Constants.accessGroup,
             kSecReturnRef as String: true,
         ]
+        query[kSecAttrAccessGroup as String] = accessGroup
 
         // 1. SecItemCopyMatching will attempt to copy the secret reference identified by the query to the reference secretRef
         var secretRef: CFTypeRef?
@@ -87,11 +88,11 @@ public final class KeyEncrypting: KeyEncryptable {
     }
 
     /// Generate a secret in the secure enclave, return the reference
-    private func generateSecret(with reference: String) throws -> SecKey {
-        guard getSecretCount(with: reference) == 0 else { throw Error.duplicatedKey }
+    private func generateSecret(with reference: String, accessGroup: String) throws -> SecKey {
+        guard getSecretCount(with: reference, accessGroup: accessGroup) == 0 else { throw Error.duplicatedKey }
 
         var error: Unmanaged<CFError>?
-        let query = secretQuery(with: reference)
+        let query = secretQuery(with: reference, accessGroup: accessGroup)
         guard let secKey = security.SecKeyCreateRandomKey(query as CFDictionary, &error) else {
             throw error!.takeRetainedValue() as Swift.Error
         }
@@ -99,7 +100,7 @@ public final class KeyEncrypting: KeyEncryptable {
     }
 
     /// Query used to generate the secret
-    private func secretQuery(with reference: String) -> [String: Any] {
+    private func secretQuery(with reference: String, accessGroup: String) -> [String: Any] {
         let access = SecAccessControlCreateWithFlags(
             kCFAllocatorDefault,
             kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
@@ -109,13 +110,13 @@ public final class KeyEncrypting: KeyEncryptable {
         var result: [String: Any] = [
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
             kSecAttrKeySizeInBits as String: 256,
-            kSecAttrAccessGroup as String: Constants.accessGroup,
             kSecPrivateKeyAttrs as String: [
                 kSecAttrIsPermanent as String: true,
                 kSecAttrApplicationTag as String: reference.data(using: .utf8) as Any,
                 kSecAttrAccessControl as String: access as Any,
             ],
         ]
+        result[kSecAttrAccessGroup as String] = accessGroup
 
         if Platform.isRealDevice {
             result[kSecAttrTokenID as String] = kSecAttrTokenIDSecureEnclave
@@ -125,14 +126,15 @@ public final class KeyEncrypting: KeyEncryptable {
     }
 
     /// Fetch number of secrets using address as reference
-    private func getSecretCount(with reference: String) -> Int {
-        let query: [String: Any] = [
+    private func getSecretCount(with reference: String, accessGroup: String) -> Int {
+        var query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
             kSecAttrApplicationTag as String: reference.data(using: .utf8) as Any,
             kSecReturnRef as String: true,
             kSecMatchLimit as String: kSecMatchLimitAll
         ]
+        query[kSecAttrAccessGroup as String] = accessGroup
 
         // 1. SecItemCopyMatching will query how many secrets are currently stored in the secure enclave
         var secretRef: CFTypeRef?

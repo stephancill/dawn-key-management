@@ -65,9 +65,10 @@ public final class HDEthereumWallet {
     /// Generate an external private key given the id generated during encryption
     public static func generateExternalPrivateKey(
         with seedId: String,
-        at index: UInt32
+        at index: UInt32,
+        accessGroup: String
     ) throws -> EthereumPrivateKey {
-        try HDEthereumWallet.accessSeedPhrase(id: seedId) { key in
+        try HDEthereumWallet.accessSeedPhrase(id: seedId, accessGroup: accessGroup) { key in
             try HDEthereumWallet(mnemonicString: String(decoding: key, as: UTF8.self))
                 .generateExternalPrivateKey(at: index)
         }
@@ -78,6 +79,7 @@ public final class HDEthereumWallet {
         id: String,
         storage: KeyStoring = KeyStorage(),
         decrypt: KeyDecryptable = KeyDecrypting(),
+        accessGroup: String,
         _ content: (ByteArray) throws -> R
     ) throws -> R {
         // 1. Get the ciphertext stored in the keychain
@@ -86,7 +88,7 @@ public final class HDEthereumWallet {
         }
 
         // 2. Decrypt the seedPhrase, return the closure containing it
-        return try decrypt.decrypt(id, cipherText: ciphertext, handler: { key in
+        return try decrypt.decrypt(id, cipherText: ciphertext, accessGroup: accessGroup, handler: { key in
             try content(key)
         })
     }
@@ -97,13 +99,14 @@ extension HDEthereumWallet {
     @discardableResult
     public func encryptSeedPhrase(
         storage: KeyStoring = KeyStorage(),
-        encrypt: KeyEncryptable = KeyEncrypting()
+        encrypt: KeyEncryptable = KeyEncrypting(),
+        accessGroup: String
     ) throws -> String {
         let seedId = UUID().uuidString
         let seedData = Data(mnemonic)
 
         // 1. Encrypt the seedPhrase using the generated UUID as reference
-        let ciphertext = try encrypt.encrypt(seedData, with: seedId)
+        let ciphertext = try encrypt.encrypt(seedData, with: seedId, accessGroup: accessGroup)
 
         // 2. Store the ciphertext in the keychain
         let status = storage.set(data: ciphertext as Data, key: seedId)

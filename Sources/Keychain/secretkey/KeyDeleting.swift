@@ -1,7 +1,7 @@
 import Foundation
 
 public protocol KeyDeletable {
-    func delete(with reference: String) throws -> OSStatus
+    func delete(with reference: String, accessGroup: String) throws -> OSStatus
 }
 
 public final class KeyDeleting: KeyDeletable {
@@ -22,11 +22,12 @@ public final class KeyDeleting: KeyDeletable {
         self.keyStore = keyStore
     }
 
-    public func delete(with reference: String) throws -> OSStatus {
+    public func delete(with reference: String, accessGroup: String) throws -> OSStatus {
         let params: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
             kSecAttrApplicationTag as String: reference.data(using: .utf8) as Any,
+            kSecAttrAccessGroup as String: accessGroup,
         ]
 
         // 1. Delete the ciphertext stored at reference
